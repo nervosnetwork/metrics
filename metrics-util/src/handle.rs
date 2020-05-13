@@ -1,3 +1,4 @@
+use metrics::{Counter, Gauge, Histogram};
 use crate::AtomicBucket;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -42,39 +43,6 @@ impl Handle {
         Handle::Histogram(Arc::new(AtomicBucket::new()))
     }
 
-    /// Increments this handle as a counter.
-    ///
-    /// Panics if this handle is not a counter.
-    pub fn increment_counter(&self, value: u64) {
-        match self {
-            Handle::Counter(counter) => {
-                counter.fetch_add(value, Ordering::SeqCst);
-            }
-            _ => panic!("tried to increment as counter"),
-        }
-    }
-
-    /// Updates this handle as a gauge.
-    ///
-    /// Panics if this handle is not a gauge.
-    pub fn update_gauge(&self, value: f64) {
-        let unsigned = value.to_bits();
-        match self {
-            Handle::Gauge(gauge) => gauge.store(unsigned, Ordering::SeqCst),
-            _ => panic!("tried to update as gauge"),
-        }
-    }
-
-    /// Records to this handle as a histogram.
-    ///
-    /// Panics if this handle is not a histogram.
-    pub fn record_histogram(&self, value: f64) {
-        match self {
-            Handle::Histogram(bucket) => bucket.push(value),
-            _ => panic!("tried to record as histogram"),
-        }
-    }
-
     /// Reads this handle as a counter.
     ///
     /// Panics if this handle is not a counter.
@@ -105,6 +73,36 @@ impl Handle {
         match self {
             Handle::Histogram(bucket) => bucket.data(),
             _ => panic!("tried to read as histogram"),
+        }
+    }
+}
+
+impl Counter for Handle {
+    fn increment_counter(&self, value: u64) {
+        match self {
+            Handle::Counter(counter) => {
+                counter.fetch_add(value, Ordering::SeqCst);
+            }
+            _ => panic!("tried to increment as counter"),
+        }
+    }
+}
+
+impl Gauge for Handle {
+    fn update_gauge(&self, value: f64) {
+        let unsigned = value.to_bits();
+        match self {
+            Handle::Gauge(gauge) => gauge.store(unsigned, Ordering::SeqCst),
+            _ => panic!("tried to update as gauge"),
+        }
+    }
+}
+
+impl Histogram for Handle {
+    fn record_histogram(&self, value: f64) {
+        match self {
+            Handle::Histogram(bucket) => bucket.push(value),
+            _ => panic!("tried to record as histogram"),
         }
     }
 }

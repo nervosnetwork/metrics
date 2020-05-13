@@ -1,4 +1,4 @@
-use crate::{IntoLabels, Label, ScopedString};
+use crate::ScopedString;
 use std::{fmt, slice::Iter};
 
 /// A metric key.
@@ -8,8 +8,12 @@ use std::{fmt, slice::Iter};
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Key {
     name: ScopedString,
-    labels: Vec<Label>,
+    labels: Option<Vec<Label>>,
 }
+
+/// A key/value pair used to further describe a metric.
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct Label(pub(crate) ScopedString, pub(crate) ScopedString);
 
 impl Key {
     /// Creates a `Key` from a name.
@@ -19,7 +23,7 @@ impl Key {
     {
         Key {
             name: name.into(),
-            labels: Vec::new(),
+            labels: None,
         }
     }
 
@@ -31,7 +35,7 @@ impl Key {
     {
         Key {
             name: name.into(),
-            labels: labels.into_labels(),
+            labels: Some(labels.into_labels()),
         }
     }
 
@@ -42,7 +46,8 @@ impl Key {
     where
         L: IntoLabels,
     {
-        self.labels.extend(new_labels.into_labels());
+        let mut labels = self.labels.get_or_insert_with(|| Vec::new());
+        labels.extend(new_labels.into_labels());
     }
 
     /// Name of this key.
@@ -52,7 +57,10 @@ impl Key {
 
     /// Labels of this key, if they exist.
     pub fn labels(&self) -> Iter<Label> {
-        self.labels.iter()
+        match self.labels {
+            Some(labels) => labels.iter(),
+            None => [].iter(),
+        }
     }
 
     /// Maps the name of this `Key` to a new name.
@@ -68,19 +76,20 @@ impl Key {
     }
 
     /// Consumes this `Key`, returning the name and any labels.
-    pub fn into_parts(self) -> (ScopedString, Vec<Label>) {
+    pub fn into_parts(self) -> (ScopedString, Option<Vec<Label>>) {
         (self.name, self.labels)
     }
 }
 
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.labels.is_empty() {
+        if self.labels.is_none() {
             write!(f, "Key({})", self.name)
         } else {
             let kv_pairs = self
                 .labels
                 .iter()
+                .flatten()
                 .map(|label| format!("{} = {}", label.0, label.1))
                 .collect::<Vec<_>>();
             write!(f, "Key({}, [{}])", self.name, kv_pairs.join(", "))
@@ -113,5 +122,73 @@ where
 {
     fn from(parts: (K, L)) -> Key {
         Key::from_name_and_labels(parts.0, parts.1)
+    }
+}
+
+impl Label {
+    /// Creates a `Label` from a key and value.
+    pub fn new<K, V>(key: K, value: V) -> Self
+    where
+        K: Into<ScopedString>,
+        V: Into<ScopedString>,
+    {
+        Label(key.into(), value.into())
+    }
+
+    /// The key of this label.
+    pub fn key(&self) -> &str {
+        self.0.as_ref()
+    }
+
+    /// The value of this label.
+    pub fn value(&self) -> &str {
+        self.1.as_ref()
+    }
+
+    /// Consumes this `Label`, returning the key and value.
+    pub fn into_parts(self) -> (ScopedString, ScopedString) {
+        (self.0, self.1)
+    }
+}
+
+impl<K, V> From<(K, V)> for Label
+where
+    K: Into<ScopedString>,
+    V: Into<ScopedString>,
+{
+    fn from(pair: (K, V)) -> Label {
+        Label::new(pair.0, pair.1)
+    }
+}
+
+impl<K, V> From<&(K, V)> for Label
+where
+    K: Into<ScopedString> + Clone,
+    V: Into<ScopedString> + Clone,
+{
+    fn from(pair: &(K, V)) -> Label {
+        Label::new(pair.0.clone(), pair.1.clone())
+    }
+}
+
+/// A value that can be converted to `Label`s.
+pub trait IntoLabels {
+    /// Consumes this value, turning it into a vector of `Label`s.
+    fn into_labels(self) -> Vec<Label>;
+}
+
+impl IntoLabels for Vec<Label> {
+    fn into_labels(self) -> Vec<Label> {
+        self
+    }
+}
+
+impl<T, L> IntoLabels for &T
+where
+    Self: IntoIterator<Item = L>,
+    L: Into<Label>,
+{
+    fn into_labels(self) -> Vec<Label> {
+        self.into_iter().map(|l| l.into()).collect()
     }
 }

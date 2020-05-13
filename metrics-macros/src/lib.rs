@@ -126,7 +126,7 @@ pub fn increment(input: TokenStream) -> TokenStream {
 
     let op_value = quote! { 1 };
 
-    get_expanded_callsite("counter", "increment", key, labels, op_value)
+    get_expanded_callsite("Counter", "increment", key, labels, op_value)
 }
 
 #[proc_macro_hack]
@@ -137,7 +137,7 @@ pub fn counter(input: TokenStream) -> TokenStream {
         labels,
     } = parse_macro_input!(input as WithExpression);
 
-    get_expanded_callsite("counter", "increment", key, labels, op_value)
+    get_expanded_callsite("Counter", "increment", key, labels, op_value)
 }
 
 #[proc_macro_hack]
@@ -148,7 +148,7 @@ pub fn gauge(input: TokenStream) -> TokenStream {
         labels,
     } = parse_macro_input!(input as WithExpression);
 
-    get_expanded_callsite("gauge", "update", key, labels, op_value)
+    get_expanded_callsite("Gauge", "update", key, labels, op_value)
 }
 
 #[proc_macro_hack]
@@ -159,7 +159,7 @@ pub fn histogram(input: TokenStream) -> TokenStream {
         labels,
     } = parse_macro_input!(input as WithExpression);
 
-    get_expanded_callsite("histogram", "record", key, labels, op_value)
+    get_expanded_callsite("Histogram", "record", key, labels, op_value)
 }
 
 fn get_expanded_registration(
@@ -208,8 +208,9 @@ fn get_expanded_callsite<V>(
 where
     V: ToTokens,
 {
-    let register_ident = format_ident!("register_{}", metric_type);
-    let op_ident = format_ident!("{}_{}", op_type, metric_type);
+    let register_ident = format_ident!("register_{}", metric_type.to_lowercase());
+    let op_ident = format_ident!("{}_{}", op_type, metric_type.to_lowercase());
+    let handle_ident = format_ident!("{}Handle", metric_type);
     let key = match key {
         Key::NotScoped(s) => {
             quote! { #s }
@@ -237,16 +238,17 @@ where
         // increment operations.
         quote! {
             {
-                static METRICS_INIT: metrics::OnceIdentifier = metrics::OnceIdentifier::new();
+                use metrics::#handle_ident;
+                static METRICS_INIT: metrics::OnceCell<#handle_ident> = metrics::OnceCell::new();
 
                 // Only do this work if there's a recorder installed.
                 if let Some(recorder) = metrics::try_recorder() {
-                    // Initialize our fast path cached identifier.
-                    let id = METRICS_INIT.get_or_init(|| {
+                    // Initialize our fast path cached handle.
+                    let handle = METRICS_INIT.get_or_init(|| {
                         recorder.#register_ident(#composite_key, None)
                     });
 
-                    recorder.#op_ident(id, #op_values);
+                    handle.#op_ident(#op_values);
                 }
             }
         }
@@ -258,9 +260,8 @@ where
             {
                 // Only do this work if there's a recorder installed.
                 if let Some(recorder) = metrics::try_recorder() {
-                    let id = recorder.#register_ident(#composite_key, None);
-
-                    recorder.#op_ident(id, #op_values);
+                    let handle = recorder.#register_ident(#composite_key, None);
+                    handle.#op_ident(#op_values);
                 }
             }
         }
@@ -295,7 +296,7 @@ fn can_use_fast_path(labels: &[(LitStr, Expr)]) -> bool {
     use_fast_path
 }
 
-#[rustversion::nightly]
+/*#[rustversion::nightly]
 fn debug_tokens<T: ToTokens>(tokens: &T) {
     if std::env::var_os("METRICS_DEBUG").is_some() {
         let ts = tokens.into_token_stream();
@@ -304,9 +305,11 @@ fn debug_tokens<T: ToTokens>(tokens: &T) {
             .note(ts.to_string())
             .emit()
     }
-}
+}*/
 
+/*
 #[rustversion::not(nightly)]
+*/
 fn debug_tokens<T: ToTokens>(_tokens: &T) {
     if std::env::var_os("METRICS_DEBUG").is_some() {
         eprintln!("nightly required to output proc macro diagnostics!");

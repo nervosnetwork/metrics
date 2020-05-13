@@ -7,7 +7,7 @@ use std::time::SystemTime;
 
 use bytes::Bytes;
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
-use metrics::{Identifier, Key, Recorder, SetRecorderError};
+use metrics::{Key, Recorder, SetRecorderError, Counter, Gauge, Histogram, CounterHandle, GaugeHandle, HistogramHandle};
 use metrics_util::Registry;
 use mio::{
     net::{TcpListener, TcpStream},
@@ -24,8 +24,6 @@ const CLIENT_INTEREST: Interest = Interest::READABLE.add(Interest::WRITABLE);
 mod proto {
     include!(concat!(env!("OUT_DIR"), "/event.proto.rs"));
 }
-
-type TcpRegistry = Registry<CompositeKey, CompositeKey>;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 enum MetricKind {
@@ -49,6 +47,31 @@ impl CompositeKey {
     }
 }
 
+struct WakeableSender<T> {
+    tx: Sender<T>,
+    waker: Waker,
+}
+
+impl<T> WakeableSender<T> {
+    pub fn new(tx: Sender<T>, waker: Waker) -> WakeableSender<T> {
+        WakeableSender { tx, waker }
+    }
+
+    pub fn lossy_send(&self, val: T) {
+        if let Ok(_) = self.tx.try_send(val) {
+            let _ = self.waker.wake();
+        }
+    }
+}
+
+struct Handle(usize, Arc<WakeableSender<(usize, MetricValue)>>);
+
+impl Handle {
+    pub fn new(id: usize, tx: Arc<WakeableSender<(usize, MetricValue)>>) -> Handle {
+        Handle(id, tx)
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     Io(io::Error),
@@ -68,9 +91,8 @@ impl From<SetRecorderError> for Error {
 }
 
 struct TcpRecorder {
-    registry: Arc<TcpRegistry>,
-    tx: Sender<(Identifier, MetricValue)>,
-    waker: Waker,
+    registry: Arc<Registry<CompositeKey, Arc<Handle>>>,
+    tx: Arc<WakeableSender<(usize, MetricValue)>>,
 }
 
 pub struct TcpBuilder {
@@ -117,8 +139,7 @@ impl TcpBuilder {
 
         let recorder = TcpRecorder {
             registry: Arc::clone(&registry),
-            tx,
-            waker,
+            tx: Arc::new(WakeableSender::new(tx, waker)),
         };
         metrics::set_boxed_recorder(Box::new(recorder))?;
 
@@ -128,48 +149,52 @@ impl TcpBuilder {
 }
 
 impl TcpRecorder {
-    fn register_metric(&self, kind: MetricKind, key: Key) -> Identifier {
+    fn register_metric(&self, kind: MetricKind, key: Key) -> &'static Handle {
         let ckey = CompositeKey(kind, key);
-        self.registry.get_or_create_identifier(ckey, |k| k.clone())
-    }
-
-    fn push_metric(&self, id: Identifier, value: MetricValue) {
-        let _ = self.tx.try_send((id, value));
-        let _ = self.waker.wake();
+        let (_, handle) = self.registry.get_or_create_handle(ckey, |id, _| {
+            Arc::new(Handle::new(id, Arc::clone(&self.tx)))
+        });
+        handle
     }
 }
 
 impl Recorder for TcpRecorder {
-    fn register_counter(&self, key: Key, _description: Option<&'static str>) -> Identifier {
-        self.register_metric(MetricKind::Counter, key)
+    fn register_counter(&self, key: Key, _description: Option<&'static str>) -> CounterHandle {
+        self.register_metric(MetricKind::Counter, key).into()
     }
 
-    fn register_gauge(&self, key: Key, _description: Option<&'static str>) -> Identifier {
-        self.register_metric(MetricKind::Gauge, key)
+    fn register_gauge(&self, key: Key, _description: Option<&'static str>) -> GaugeHandle {
+        self.register_metric(MetricKind::Gauge, key).into()
     }
 
-    fn register_histogram(&self, key: Key, _description: Option<&'static str>) -> Identifier {
-        self.register_metric(MetricKind::Histogram, key)
+    fn register_histogram(&self, key: Key, _description: Option<&'static str>) -> HistogramHandle {
+        self.register_metric(MetricKind::Histogram, key).into()
     }
+}
 
-    fn increment_counter(&self, id: Identifier, value: u64) {
-        self.push_metric(id, MetricValue::Counter(value));
+impl Counter for Handle {
+    fn increment_counter(&self, value: u64) {
+        self.1.lossy_send((self.0, MetricValue::Counter(value)));
     }
+}
 
-    fn update_gauge(&self, id: Identifier, value: f64) {
-        self.push_metric(id, MetricValue::Gauge(value));
+impl Gauge for Handle {
+    fn update_gauge(&self, value: f64) {
+        self.1.lossy_send((self.0, MetricValue::Gauge(value)));
     }
+}
 
-    fn record_histogram(&self, id: Identifier, value: f64) {
-        self.push_metric(id, MetricValue::Histogram(value));
+impl Histogram for Handle {
+    fn record_histogram(&self, value: f64) {
+        self.1.lossy_send((self.0, MetricValue::Histogram(value)));
     }
 }
 
 fn run_transport(
-    registry: Arc<TcpRegistry>,
+    registry: Arc<Registry<CompositeKey, Arc<Handle>>>,
     mut poll: Poll,
     listener: TcpListener,
-    rx: Receiver<(Identifier, MetricValue)>,
+    rx: Receiver<(usize, MetricValue)>,
     buffer_size: Option<usize>,
 ) {
     let buffer_limit = buffer_size.unwrap_or(std::usize::MAX);
@@ -217,7 +242,7 @@ fn run_transport(
                         match convert_metric_to_protobuf_encoded(&registry, msg.0, msg.1) {
                             Some(Ok(pmsg)) => buffered_pmsgs.push_back(pmsg),
                             Some(Err(e)) => error!(error = ?e, "error encoding metric"),
-                            None => error!(metric_id = msg.0.to_usize(), "unknown metric"),
+                            None => error!(metric_id = msg.0, "unknown metric"),
                         }
                     }
                     drop(_mrxspan);
@@ -366,11 +391,11 @@ fn drive_connection(
 }
 
 fn convert_metric_to_protobuf_encoded(
-    registry: &Arc<TcpRegistry>,
-    id: Identifier,
+    registry: &Arc<Registry<CompositeKey, Arc<Handle>>>,
+    id: usize,
     value: MetricValue,
 ) -> Option<Result<Bytes, EncodeError>> {
-    registry.with_handle(id, |ckey| {
+    registry.with_handle(id, |ckey, _| {
         let name = ckey.key().name().to_string();
         let labels = ckey
             .key()

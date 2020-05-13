@@ -1,4 +1,5 @@
-use crate::{Identifier, Key};
+use crate::Key;
+use crate::common::{CounterHandle, GaugeHandle, HistogramHandle};
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -19,47 +20,53 @@ pub trait Recorder {
     /// Callers may provide a description of the counter being registered. Whether or not a metric
     /// can be reregistered to provide a description, if one was already passed or not, as well as
     /// how descriptions are used by the underlying recorder, is an implementation detail.
-    fn register_counter(&self, key: Key, description: Option<&'static str>) -> Identifier;
+    fn register_counter(&self, key: Key, description: Option<&'static str>) -> CounterHandle;
 
     /// Registers a gauge.
     ///
     /// Callers may provide a description of the counter being registered. Whether or not a metric
     /// can be reregistered to provide a description, if one was already passed or not, as well as
     /// how descriptions are used by the underlying recorder, is an implementation detail.
-    fn register_gauge(&self, key: Key, description: Option<&'static str>) -> Identifier;
+    fn register_gauge(&self, key: Key, description: Option<&'static str>) -> GaugeHandle;
 
     /// Registers a histogram.
     ///
     /// Callers may provide a description of the counter being registered. Whether or not a metric
     /// can be reregistered to provide a description, if one was already passed or not, as well as
     /// how descriptions are used by the underlying recorder, is an implementation detail.
-    fn register_histogram(&self, key: Key, description: Option<&'static str>) -> Identifier;
+    fn register_histogram(&self, key: Key, description: Option<&'static str>) -> HistogramHandle;
+}
 
+/// A counter object.
+pub trait Counter: Sync {
     /// Increments a counter.
-    fn increment_counter(&self, id: Identifier, value: u64);
+    fn increment_counter(&self, value: u64);
+}
 
+/// A gauge object.
+pub trait Gauge: Sync {
     /// Updates a gauge.
-    fn update_gauge(&self, id: Identifier, value: f64);
+    fn update_gauge(&self, value: f64);
+}
 
+/// A histogram object.
+pub trait Histogram: Sync {
     /// Records a histogram.
-    fn record_histogram(&self, id: Identifier, value: f64);
+    fn record_histogram(&self, value: f64);
 }
 
 struct NoopRecorder;
 
 impl Recorder for NoopRecorder {
-    fn register_counter(&self, _key: Key, _description: Option<&'static str>) -> Identifier {
-        Identifier::default()
+    fn register_counter(&self, _key: Key, _description: Option<&'static str>) -> CounterHandle {
+        CounterHandle::default()
     }
-    fn register_gauge(&self, _key: Key, _description: Option<&'static str>) -> Identifier {
-        Identifier::default()
+    fn register_gauge(&self, _key: Key, _description: Option<&'static str>) -> GaugeHandle {
+        GaugeHandle::default()
     }
-    fn register_histogram(&self, _key: Key, _description: Option<&'static str>) -> Identifier {
-        Identifier::default()
+    fn register_histogram(&self, _key: Key, _description: Option<&'static str>) -> HistogramHandle {
+        HistogramHandle::default()
     }
-    fn increment_counter(&self, _id: Identifier, _value: u64) {}
-    fn update_gauge(&self, _id: Identifier, _value: f64) {}
-    fn record_histogram(&self, _id: Identifier, _value: f64) {}
 }
 
 /// Sets the global recorder to a `&'static Recorder`.

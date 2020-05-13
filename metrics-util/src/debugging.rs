@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use crate::{handle::Handle, registry::Registry};
+use crate::handle::Handle;
+use crate::registry::Registry;
 
-use metrics::{Identifier, Key, Recorder};
+use metrics::{Key, Recorder, CounterHandle, GaugeHandle, HistogramHandle};
 
 /// Metric kinds.
 #[derive(Eq, PartialEq, Hash, Clone)]
@@ -78,7 +79,7 @@ impl DebuggingRecorder {
     /// Gets a `Snapshotter` attached to this recorder.
     pub fn snapshotter(&self) -> Snapshotter {
         Snapshotter {
-            registry: self.registry.clone(),
+            registry: Arc::clone(&self.registry),
         }
     }
 
@@ -89,36 +90,21 @@ impl DebuggingRecorder {
 }
 
 impl Recorder for DebuggingRecorder {
-    fn register_counter(&self, key: Key, _description: Option<&'static str>) -> Identifier {
+    fn register_counter(&self, key: Key, _description: Option<&'static str>) -> CounterHandle {
         let rkey = DifferentiatedKey(MetricKind::Counter, key);
-        self.registry
-            .get_or_create_identifier(rkey, |_| Handle::counter())
+        let (_, handle) = self.registry.get_or_create_handle(rkey, |_, _| Handle::counter());
+        handle.into()
     }
 
-    fn register_gauge(&self, key: Key, _description: Option<&'static str>) -> Identifier {
+    fn register_gauge(&self, key: Key, _description: Option<&'static str>) -> GaugeHandle {
         let rkey = DifferentiatedKey(MetricKind::Gauge, key);
-        self.registry
-            .get_or_create_identifier(rkey, |_| Handle::gauge())
+        let (_, handle) = self.registry.get_or_create_handle(rkey, |_, _| Handle::gauge());
+        handle.into()
     }
 
-    fn register_histogram(&self, key: Key, _description: Option<&'static str>) -> Identifier {
+    fn register_histogram(&self, key: Key, _description: Option<&'static str>) -> HistogramHandle {
         let rkey = DifferentiatedKey(MetricKind::Histogram, key);
-        self.registry
-            .get_or_create_identifier(rkey, |_| Handle::histogram())
-    }
-
-    fn increment_counter(&self, id: Identifier, value: u64) {
-        self.registry
-            .with_handle(id, |handle| handle.increment_counter(value));
-    }
-
-    fn update_gauge(&self, id: Identifier, value: f64) {
-        self.registry
-            .with_handle(id, |handle| handle.update_gauge(value));
-    }
-
-    fn record_histogram(&self, id: Identifier, value: f64) {
-        self.registry
-            .with_handle(id, |handle| handle.record_histogram(value));
+        let (_, handle) = self.registry.get_or_create_handle(rkey, |_, _| Handle::histogram());
+        handle.into()
     }
 }
