@@ -28,7 +28,6 @@ harness = false
 metrics-core = { path = "../metrics-core", version = "^0.5" }
 metrics-util = { path = "../metrics-util", version = "^0.3" }
 metrics = { path = "../metrics", version = "^0.12", features = ["std"] }
-im = "^15"
 arc-swap = "^0.4"
 parking_lot = "^0.10"
 quanta = "^0.3"

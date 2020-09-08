@@ -3,9 +3,9 @@ use crate::config::Configuration;
 use crate::data::Snapshot;
 use crate::registry::ScopeRegistry;
 use arc_swap::ArcSwap;
-use im::hashmap::HashMap;
 use metrics_core::Observer;
 use quanta::Clock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Debug)]
