@@ -41,7 +41,7 @@
 //! Here's a simple example of creating a receiver and working with a sink:
 //!
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! use metrics_runtime::Receiver;
 //! use std::{thread, time::Duration};
 //! let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -85,7 +85,7 @@
 //! the root scope and then send some metrics:
 //!
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! # use metrics_runtime::Receiver;
 //! # let receiver = Receiver::builder().build().expect("failed to create receiver");
 //! // This sink has no scope aka the root scope.  The metric will just end up as "widgets".
@@ -124,7 +124,7 @@
 //! This is most easily demonstrated with an example:
 //!
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! # fn run_query(_: &str) -> u64 { 42 }
 //! # use metrics_runtime::Receiver;
 //! # let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -168,7 +168,7 @@
 //! the values can be updated directly, and with less overhead, resulting in faster method calls.
 //!
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! # use metrics_runtime::Receiver;
 //! # use std::time::Instant;
 //! # let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -219,7 +219,7 @@
 //! normally on some sort of schedule.
 //!
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! # extern crate metrics_core;
 //! # use metrics_core::Key;
 //! # use metrics_runtime::{Receiver, Measurement};
@@ -252,7 +252,7 @@
 //! Let's take an example of writing out our metrics in a yaml-like format, writing them via
 //! `log!`:
 //! ```rust
-//! # extern crate metrics_runtime;
+//! # extern crate ckb_metrics_runtime as metrics_runtime;
 //! use metrics_runtime::{
 //!     Receiver, observers::YamlBuilder, exporters::LogExporter,
 //! };
@@ -298,7 +298,7 @@
 //! `metrics-runtime` is `metrics` compatible, and can be installed as the global metrics facade:
 //! ```
 //! # #[macro_use] extern crate metrics;
-//! extern crate metrics_runtime;
+//! extern crate ckb_metrics_runtime as metrics_runtime;
 //! use metrics_runtime::Receiver;
 //!
 //! Receiver::builder()

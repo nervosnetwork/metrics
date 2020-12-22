@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate log;
+extern crate ckb_metrics_runtime as metrics_runtime;
 extern crate env_logger;
 extern crate getopts;
 extern crate hdrhistogram;
 extern crate metrics_core;
-extern crate metrics_runtime;
 extern crate tokio;
 
 #[macro_use]

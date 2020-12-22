@@ -126,7 +126,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -149,7 +149,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -173,7 +173,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -196,7 +196,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -224,7 +224,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -255,7 +255,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -283,7 +283,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -308,7 +308,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -340,7 +340,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -371,7 +371,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -402,7 +402,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -430,7 +430,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # fn main() {
     /// let receiver = Receiver::builder().build().expect("failed to create receiver");
@@ -458,7 +458,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -496,7 +496,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # use metrics_runtime::Receiver;
     /// # use std::thread;
     /// # use std::time::Duration;
@@ -540,7 +540,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # extern crate metrics_core;
     /// # use metrics_runtime::{Receiver, Measurement};
     /// # use metrics_core::Key;
@@ -589,7 +589,7 @@ impl Sink {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate metrics_runtime;
+    /// # extern crate ckb_metrics_runtime as metrics_runtime;
     /// # extern crate metrics_core;
     /// # use metrics_runtime::{Receiver, Measurement};
     /// # use metrics_core::Key;
